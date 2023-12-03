@@ -3771,6 +3771,7 @@ static int scx_ops_enable(struct sched_ext_ops *ops)
 		goto err_disable_unlock_all;
 
 	static_branch_enable_cpuslocked(&__scx_ops_enabled);
+	add_taint(TAINT_OOT_MODULE, LOCKDEP_STILL_OK);
 
 	/*
 	 * Enable ops for every task. Fork is excluded by scx_fork_rwsem
