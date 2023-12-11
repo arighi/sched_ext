@@ -1,3 +1,57 @@
+linux-unstable (6.7.0-3.3+scx2) noble; urgency=medium
+
+  * apply sched-ext patch set to linux-unstable (LP: #2045503)
+    - SAUCE: cgroup: Implement cgroup_show_cftypes()
+    - SAUCE: sched: Restructure sched_class order sanity checks in sched_init()
+    - SAUCE: sched: Allow sched_cgroup_fork() to fail and introduce
+      sched_cancel_fork()
+    - SAUCE: sched: Add sched_class->reweight_task()
+    - SAUCE: sched: Add sched_class->switching_to() and expose
+      check_class_changing/changed()
+    - SAUCE: sched: Factor out cgroup weight conversion functions
+    - SAUCE: sched: Expose css_tg() and __setscheduler_prio()
+    - SAUCE: sched: Enumerate CPU cgroup file types
+    - SAUCE: sched: Add @reason to sched_class->rq_{on|off}line()
+    - SAUCE: sched: Add normal_policy()
+    - SAUCE: sched_ext: Add boilerplate for extensible scheduler class
+    - SAUCE: sched_ext: Implement BPF extensible scheduler class
+    - SAUCE: sched_ext: Add scx_simple and scx_example_qmap example schedulers
+    - SAUCE: sched_ext: Add sysrq-S which disables the BPF scheduler
+    - SAUCE: sched_ext: Implement runnable task stall watchdog
+    - SAUCE: sched_ext: Allow BPF schedulers to disallow specific tasks from
+      joining SCHED_EXT
+    - SAUCE: sched_ext: Allow BPF schedulers to switch all eligible tasks into
+      sched_ext
+    - SAUCE: sched_ext: Print sched_ext info when dumping stack
+    - SAUCE: sched_ext: Implement scx_bpf_kick_cpu() and task preemption support
+    - SAUCE: sched_ext: Add a central scheduler which makes all scheduling
+      decisions on one CPU
+    - SAUCE: sched_ext: Make watchdog handle ops.dispatch() looping stall
+    - SAUCE: sched_ext: Add task state tracking operations
+    - SAUCE: sched_ext: Implement tickless support
+    - SAUCE: sched_ext: Track tasks that are subjects of the in-flight SCX
+      operation
+    - SAUCE: sched_ext: Add cgroup support
+    - SAUCE: sched_ext: Add a cgroup-based core-scheduling scheduler
+    - SAUCE: sched_ext: Add a cgroup scheduler which uses flattened hierarchy
+    - SAUCE: sched_ext: Implement SCX_KICK_WAIT
+    - SAUCE: sched_ext: Implement sched_ext_ops.cpu_acquire/release()
+    - SAUCE: sched_ext: Implement sched_ext_ops.cpu_online/offline()
+    - SAUCE: sched_ext: Implement core-sched support
+    - SAUCE: sched_ext: Add vtime-ordered priority queue to dispatch_q's
+    - SAUCE: sched_ext: Documentation: scheduler: Document extensible scheduler
+      class
+    - SAUCE: sched_ext: Add a basic, userland vruntime scheduler
+    - SAUCE: sched_ext: Add scx_rusty, a rust userspace hybrid scheduler
+    - SAUCE: sched_ext: use proper atomic operator for scx.ops_state
+    - SAUCE: sched-ext: taint kernel when a custom scheduler is loaded
+    - [Config] enable sched_ext in annotations
+
+  * Miscellaneous Ubuntu changes
+    - [Config] enable low latency settings
+
+ -- Andrea Righi <andrea.righi@canonical.com>  Mon, 11 Dec 2023 17:56:09 +0100
+
 linux-unstable (6.7.0-3.3) noble; urgency=medium
 
   * noble/linux-unstable: 6.7.0-3.3 -proposed tracker (LP: #2046060)
