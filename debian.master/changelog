@@ -4,6 +4,10 @@ linux-unstable (6.7.0-3.3+scx7) UNRELEASED; urgency=medium
   CHANGELOG: Use the printchanges target to see the curent changes.
   CHANGELOG: Use the insertchanges target to create the final log.
 
+  [ Upstream Kernel Changes ]
+
+  * Rebase to v6.7 sched-ext (https://github.com/sched-ext/sched_ext.git)
+
  -- Andrea Righi <andrea.righi@canonical.com>  Tue, 09 Jan 2024 08:31:15 +0100
 
 linux-unstable (6.7.0-3.3+scx6) noble; urgency=medium
