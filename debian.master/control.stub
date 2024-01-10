@@ -83,7 +83,7 @@ Description: Linux kernel source for version 6.7.0 with Ubuntu patches
  you do not want this package. Install the appropriate linux-headers
  package instead.
 
-Package: linux-unstable-headers-6.7.0-3
+Package: linux-unstable-headers-6.7.0-4
 Build-Profiles: <!stage1>
 Architecture: all
 Multi-Arch: foreign
@@ -93,7 +93,7 @@ Depends: ${misc:Depends}, coreutils
 Description: Header files related to Linux kernel version 6.7.0
  This package provides kernel header files for version 6.7.0, for sites
  that want the latest kernel headers. Please read
- /usr/share/doc/linux-unstable-headers-6.7.0-3/debian.README.gz for details
+ /usr/share/doc/linux-unstable-headers-6.7.0-4/debian.README.gz for details
 
 Package: linux-unstable-tools-common
 Build-Profiles: <!stage1>
@@ -108,18 +108,18 @@ Description: Linux kernel version specific tools for version 6.7.0
  version locked tools (such as perf and x86_energy_perf_policy) for
  version 6.7.0.
 
-Package: linux-unstable-tools-6.7.0-3
+Package: linux-unstable-tools-6.7.0-4
 Build-Profiles: <!stage1>
 Architecture: amd64 armhf arm64 ppc64el s390x
 Section: devel
 Priority: optional
 Depends: ${misc:Depends}, ${shlibs:Depends}, linux-tools-common
-Description: Linux kernel version specific tools for version 6.7.0-3
+Description: Linux kernel version specific tools for version 6.7.0-4
  This package provides the architecture dependant parts for kernel
  version locked tools (such as perf and x86_energy_perf_policy) for
- version 6.7.0-3 on
+ version 6.7.0-4 on
  64 bit x86.
- You probably want to install linux-tools-6.7.0-3-<flavour>.
+ You probably want to install linux-tools-6.7.0-4-<flavour>.
 
 Package: linux-unstable-cloud-tools-common
 Build-Profiles: <!stage1>
@@ -132,17 +132,17 @@ Description: Linux kernel version specific cloud tools for version 6.7.0
  This package provides the architecture independent parts for kernel
  version locked tools for cloud tools for version 6.7.0.
 
-Package: linux-unstable-cloud-tools-6.7.0-3
+Package: linux-unstable-cloud-tools-6.7.0-4
 Build-Profiles: <!stage1>
 Architecture: amd64 armhf
 Section: devel
 Priority: optional
 Depends: ${misc:Depends}, ${shlibs:Depends}, linux-cloud-tools-common
-Description: Linux kernel version specific cloud tools for version 6.7.0-3
+Description: Linux kernel version specific cloud tools for version 6.7.0-4
  This package provides the architecture dependant parts for kernel
- version locked tools for cloud tools for version 6.7.0-3 on
+ version locked tools for cloud tools for version 6.7.0-4 on
  64 bit x86.
- You probably want to install linux-cloud-tools-6.7.0-3-<flavour>.
+ You probably want to install linux-cloud-tools-6.7.0-4-<flavour>.
 
 Package: linux-unstable-tools-host
 Build-Profiles: <!stage1>
@@ -156,17 +156,17 @@ Description: Linux kernel VM host tools
 
 
 
-Package: linux-image-unsigned-6.7.0-3-generic
+Package: linux-image-unsigned-6.7.0-4-generic
 Build-Profiles: <!stage1>
 Architecture: amd64 armhf arm64 ppc64el riscv64 s390x
 Section: kernel
 Priority: optional
 Provides: linux-image, fuse-module, kvm-api-4, redhat-cluster-modules, ivtv-modules, virtualbox-guest-modules [amd64], ${linux:rprovides}
-Depends: ${misc:Depends}, ${shlibs:Depends}, kmod, linux-base (>= 4.5ubuntu1~16.04.1), linux-modules-6.7.0-3-generic
+Depends: ${misc:Depends}, ${shlibs:Depends}, kmod, linux-base (>= 4.5ubuntu1~16.04.1), linux-modules-6.7.0-4-generic
 Recommends: grub-pc [amd64] | grub-efi-amd64 [amd64] | grub-efi-ia32 [amd64] | grub [amd64] | lilo [amd64] | flash-kernel [armhf arm64] | grub-efi-arm64 [arm64] | grub-efi-arm [armhf] | grub-ieee1275 [ppc64el], initramfs-tools | linux-initramfs-tool
 Breaks: flash-kernel (<< 3.90ubuntu2) [arm64 armhf], s390-tools (<< 2.3.0-0ubuntu3) [s390x]
-Conflicts: linux-image-6.7.0-3-generic
-Suggests: fdutils, linux-unstable-tools, linux-headers-6.7.0-3-generic, linux-modules-extra-6.7.0-3-generic
+Conflicts: linux-image-6.7.0-4-generic
+Suggests: fdutils, linux-unstable-tools, linux-headers-6.7.0-4-generic, linux-modules-extra-6.7.0-4-generic
 Description: Linux kernel image for version 6.7.0 on 64 bit x86 SMP
  This package contains the unsigned Linux kernel image for version 6.7.0 on
  64 bit x86 SMP.
@@ -179,7 +179,7 @@ Description: Linux kernel image for version 6.7.0 on 64 bit x86 SMP
  the linux-generic meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
-Package: linux-modules-6.7.0-3-generic
+Package: linux-modules-6.7.0-4-generic
 Build-Profiles: <!stage1>
 Architecture: amd64 armhf arm64 ppc64el riscv64 s390x
 Section: kernel
@@ -199,12 +199,12 @@ Description: Linux kernel extra modules for version 6.7.0 on 64 bit x86 SMP
  the linux-generic meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
-Package: linux-modules-extra-6.7.0-3-generic
+Package: linux-modules-extra-6.7.0-4-generic
 Build-Profiles: <!stage1>
 Architecture: amd64 armhf arm64 ppc64el riscv64 s390x
 Section: kernel
 Priority: optional
-Depends: ${misc:Depends}, ${shlibs:Depends}, linux-modules-6.7.0-3-generic, wireless-regdb
+Depends: ${misc:Depends}, ${shlibs:Depends}, linux-modules-6.7.0-4-generic, wireless-regdb
 Description: Linux kernel extra modules for version 6.7.0 on 64 bit x86 SMP
  This package contains the Linux kernel extra modules for version 6.7.0 on
  64 bit x86 SMP.
@@ -221,21 +221,21 @@ Description: Linux kernel extra modules for version 6.7.0 on 64 bit x86 SMP
  the linux-generic meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
-Package: linux-headers-6.7.0-3-generic
+Package: linux-headers-6.7.0-4-generic
 Build-Profiles: <!stage1>
 Architecture: amd64 armhf arm64 ppc64el riscv64 s390x
 Section: devel
 Priority: optional
-Depends: ${misc:Depends}, linux-unstable-headers-6.7.0-3, ${shlibs:Depends}
+Depends: ${misc:Depends}, linux-unstable-headers-6.7.0-4, ${shlibs:Depends}
 Provides: linux-headers, linux-headers-3.0
 Description: Linux kernel headers for version 6.7.0 on 64 bit x86 SMP
  This package provides kernel header files for version 6.7.0 on
  64 bit x86 SMP.
  .
  This is for sites that want the latest kernel headers.  Please read
- /usr/share/doc/linux-headers-6.7.0-3/debian.README.gz for details.
+ /usr/share/doc/linux-headers-6.7.0-4/debian.README.gz for details.
 
-Package: linux-unstable-lib-rust-6.7.0-3-generic
+Package: linux-unstable-lib-rust-6.7.0-4-generic
 Build-Profiles: <!stage1>
 Architecture: amd64
 Multi-Arch: foreign
@@ -246,7 +246,7 @@ Description: Rust library files related to Linux kernel version 6.7.0
  This package provides kernel library files for version 6.7.0, that allow to
  compile out-of-tree kernel modules written in Rust.
 
-Package: linux-image-unsigned-6.7.0-3-generic-dbgsym
+Package: linux-image-unsigned-6.7.0-4-generic-dbgsym
 Build-Profiles: <!stage1>
 Architecture: amd64 armhf arm64 ppc64el riscv64 s390x
 Section: devel
@@ -263,31 +263,31 @@ Description: Linux kernel debug image for version 6.7.0 on 64 bit x86 SMP
  is uncompressed, and unstripped. This package also includes the
  unstripped modules.
 
-Package: linux-tools-6.7.0-3-generic
+Package: linux-tools-6.7.0-4-generic
 Build-Profiles: <!stage1>
 Architecture: amd64 armhf arm64 ppc64el riscv64 s390x
 Section: devel
 Priority: optional
-Depends: ${misc:Depends}, linux-unstable-tools-6.7.0-3
-Description: Linux kernel version specific tools for version 6.7.0-3
+Depends: ${misc:Depends}, linux-unstable-tools-6.7.0-4
+Description: Linux kernel version specific tools for version 6.7.0-4
  This package provides the architecture dependant parts for kernel
  version locked tools (such as perf and x86_energy_perf_policy) for
- version 6.7.0-3 on
+ version 6.7.0-4 on
  64 bit x86.
 
-Package: linux-cloud-tools-6.7.0-3-generic
+Package: linux-cloud-tools-6.7.0-4-generic
 Build-Profiles: <!stage1>
 Architecture: amd64 armhf arm64 ppc64el riscv64 s390x
 Section: devel
 Priority: optional
-Depends: ${misc:Depends}, linux-unstable-cloud-tools-6.7.0-3
-Description: Linux kernel version specific cloud tools for version 6.7.0-3
+Depends: ${misc:Depends}, linux-unstable-cloud-tools-6.7.0-4
+Description: Linux kernel version specific cloud tools for version 6.7.0-4
  This package provides the architecture dependant parts for kernel
- version locked tools for cloud for version 6.7.0-3 on
+ version locked tools for cloud for version 6.7.0-4 on
  64 bit x86.
 
 
-Package: linux-buildinfo-6.7.0-3-generic
+Package: linux-buildinfo-6.7.0-4-generic
 Build-Profiles: <!stage1>
 Architecture: amd64 armhf arm64 ppc64el riscv64 s390x
 Section: kernel
@@ -301,18 +301,18 @@ Description: Linux kernel buildinfo for version 6.7.0 on 64 bit x86 SMP
  You likely do not want to install this package.
 
 
-Package: linux-modules-iwlwifi-6.7.0-3-generic
+Package: linux-modules-iwlwifi-6.7.0-4-generic
 Build-Profiles: <!stage1>
 Architecture: amd64 armhf arm64 ppc64el riscv64 s390x
 Section: kernel
 Priority: optional
 Depends:
  ${misc:Depends},
- linux-image-6.7.0-3-generic | linux-image-unsigned-6.7.0-3-generic,
+ linux-image-6.7.0-4-generic | linux-image-unsigned-6.7.0-4-generic,
 Built-Using: ${linux:BuiltUsing}
-Description: Linux kernel iwlwifi modules for version 6.7.0-3
+Description: Linux kernel iwlwifi modules for version 6.7.0-4
  This package provides the Linux kernel iwlwifi modules for version
- 6.7.0-3.
+ 6.7.0-4.
  .
  You likely do not want to install this package directly. Instead, install the
  one of the linux-modules-iwlwifi-generic* meta-packages,
@@ -320,17 +320,17 @@ Description: Linux kernel iwlwifi modules for version 6.7.0-3
  also installed.
 
 
-Package: linux-image-unsigned-6.7.0-3-generic-64k
+Package: linux-image-unsigned-6.7.0-4-generic-64k
 Build-Profiles: <!stage1>
 Architecture: arm64
 Section: kernel
 Priority: optional
 Provides: linux-image, fuse-module, kvm-api-4, redhat-cluster-modules, ivtv-modules, ${linux:rprovides}
-Depends: ${misc:Depends}, ${shlibs:Depends}, kmod, linux-base (>= 4.5ubuntu1~16.04.1), linux-modules-6.7.0-3-generic-64k
+Depends: ${misc:Depends}, ${shlibs:Depends}, kmod, linux-base (>= 4.5ubuntu1~16.04.1), linux-modules-6.7.0-4-generic-64k
 Recommends: grub-efi-arm64 [arm64] | flash-kernel [arm64], initramfs-tools | linux-initramfs-tool
 Breaks: flash-kernel (<< 3.90ubuntu2) [arm64 armhf], s390-tools (<< 2.3.0-0ubuntu3) [s390x]
-Conflicts: linux-image-6.7.0-3-generic-64k
-Suggests: fdutils, linux-unstable-tools, linux-headers-6.7.0-3-generic-64k, linux-modules-extra-6.7.0-3-generic-64k
+Conflicts: linux-image-6.7.0-4-generic-64k
+Suggests: fdutils, linux-unstable-tools, linux-headers-6.7.0-4-generic-64k, linux-modules-extra-6.7.0-4-generic-64k
 Description: Linux kernel image for version 6.7.0 on 64 bit x86 SMP
  This package contains the unsigned Linux kernel image for version 6.7.0 on
  64 bit x86 SMP.
@@ -343,7 +343,7 @@ Description: Linux kernel image for version 6.7.0 on 64 bit x86 SMP
  the linux-generic-64k meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
-Package: linux-modules-6.7.0-3-generic-64k
+Package: linux-modules-6.7.0-4-generic-64k
 Build-Profiles: <!stage1>
 Architecture: arm64
 Section: kernel
@@ -363,12 +363,12 @@ Description: Linux kernel extra modules for version 6.7.0 on 64 bit x86 SMP
  the linux-generic-64k meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
-Package: linux-modules-extra-6.7.0-3-generic-64k
+Package: linux-modules-extra-6.7.0-4-generic-64k
 Build-Profiles: <!stage1>
 Architecture: arm64
 Section: kernel
 Priority: optional
-Depends: ${misc:Depends}, ${shlibs:Depends}, linux-modules-6.7.0-3-generic-64k, wireless-regdb
+Depends: ${misc:Depends}, ${shlibs:Depends}, linux-modules-6.7.0-4-generic-64k, wireless-regdb
 Description: Linux kernel extra modules for version 6.7.0 on 64 bit x86 SMP
  This package contains the Linux kernel extra modules for version 6.7.0 on
  64 bit x86 SMP.
@@ -385,21 +385,21 @@ Description: Linux kernel extra modules for version 6.7.0 on 64 bit x86 SMP
  the linux-generic-64k meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
-Package: linux-headers-6.7.0-3-generic-64k
+Package: linux-headers-6.7.0-4-generic-64k
 Build-Profiles: <!stage1>
 Architecture: arm64
 Section: devel
 Priority: optional
-Depends: ${misc:Depends}, linux-unstable-headers-6.7.0-3, ${shlibs:Depends}
+Depends: ${misc:Depends}, linux-unstable-headers-6.7.0-4, ${shlibs:Depends}
 Provides: linux-headers, linux-headers-3.0
 Description: Linux kernel headers for version 6.7.0 on 64 bit x86 SMP
  This package provides kernel header files for version 6.7.0 on
  64 bit x86 SMP.
  .
  This is for sites that want the latest kernel headers.  Please read
- /usr/share/doc/linux-headers-6.7.0-3/debian.README.gz for details.
+ /usr/share/doc/linux-headers-6.7.0-4/debian.README.gz for details.
 
-Package: linux-unstable-lib-rust-6.7.0-3-generic-64k
+Package: linux-unstable-lib-rust-6.7.0-4-generic-64k
 Build-Profiles: <!stage1>
 Architecture: amd64
 Multi-Arch: foreign
@@ -410,7 +410,7 @@ Description: Rust library files related to Linux kernel version 6.7.0
  This package provides kernel library files for version 6.7.0, that allow to
  compile out-of-tree kernel modules written in Rust.
 
-Package: linux-image-unsigned-6.7.0-3-generic-64k-dbgsym
+Package: linux-image-unsigned-6.7.0-4-generic-64k-dbgsym
 Build-Profiles: <!stage1>
 Architecture: arm64
 Section: devel
@@ -427,31 +427,31 @@ Description: Linux kernel debug image for version 6.7.0 on 64 bit x86 SMP
  is uncompressed, and unstripped. This package also includes the
  unstripped modules.
 
-Package: linux-tools-6.7.0-3-generic-64k
+Package: linux-tools-6.7.0-4-generic-64k
 Build-Profiles: <!stage1>
 Architecture: arm64
 Section: devel
 Priority: optional
-Depends: ${misc:Depends}, linux-unstable-tools-6.7.0-3
-Description: Linux kernel version specific tools for version 6.7.0-3
+Depends: ${misc:Depends}, linux-unstable-tools-6.7.0-4
+Description: Linux kernel version specific tools for version 6.7.0-4
  This package provides the architecture dependant parts for kernel
  version locked tools (such as perf and x86_energy_perf_policy) for
- version 6.7.0-3 on
+ version 6.7.0-4 on
  64 bit x86.
 
-Package: linux-cloud-tools-6.7.0-3-generic-64k
+Package: linux-cloud-tools-6.7.0-4-generic-64k
 Build-Profiles: <!stage1>
 Architecture: arm64
 Section: devel
 Priority: optional
-Depends: ${misc:Depends}, linux-unstable-cloud-tools-6.7.0-3
-Description: Linux kernel version specific cloud tools for version 6.7.0-3
+Depends: ${misc:Depends}, linux-unstable-cloud-tools-6.7.0-4
+Description: Linux kernel version specific cloud tools for version 6.7.0-4
  This package provides the architecture dependant parts for kernel
- version locked tools for cloud for version 6.7.0-3 on
+ version locked tools for cloud for version 6.7.0-4 on
  64 bit x86.
 
 
-Package: linux-buildinfo-6.7.0-3-generic-64k
+Package: linux-buildinfo-6.7.0-4-generic-64k
 Build-Profiles: <!stage1>
 Architecture: arm64
 Section: kernel
@@ -465,18 +465,18 @@ Description: Linux kernel buildinfo for version 6.7.0 on 64 bit x86 SMP
  You likely do not want to install this package.
 
 
-Package: linux-modules-iwlwifi-6.7.0-3-generic-64k
+Package: linux-modules-iwlwifi-6.7.0-4-generic-64k
 Build-Profiles: <!stage1>
 Architecture: arm64
 Section: kernel
 Priority: optional
 Depends:
  ${misc:Depends},
- linux-image-6.7.0-3-generic-64k | linux-image-unsigned-6.7.0-3-generic-64k,
+ linux-image-6.7.0-4-generic-64k | linux-image-unsigned-6.7.0-4-generic-64k,
 Built-Using: ${linux:BuiltUsing}
-Description: Linux kernel iwlwifi modules for version 6.7.0-3
+Description: Linux kernel iwlwifi modules for version 6.7.0-4
  This package provides the Linux kernel iwlwifi modules for version
- 6.7.0-3.
+ 6.7.0-4.
  .
  You likely do not want to install this package directly. Instead, install the
  one of the linux-modules-iwlwifi-generic-64k* meta-packages,
@@ -484,17 +484,17 @@ Description: Linux kernel iwlwifi modules for version 6.7.0-3
  also installed.
 
 
-Package: linux-image-unsigned-6.7.0-3-generic-lpae
+Package: linux-image-unsigned-6.7.0-4-generic-lpae
 Build-Profiles: <!stage1>
 Architecture: armhf
 Section: kernel
 Priority: optional
 Provides: linux-image, fuse-module, kvm-api-4, redhat-cluster-modules, ivtv-modules, ${linux:rprovides}
-Depends: ${misc:Depends}, ${shlibs:Depends}, kmod, linux-base (>= 4.5ubuntu1~16.04.1), linux-modules-6.7.0-3-generic-lpae
+Depends: ${misc:Depends}, ${shlibs:Depends}, kmod, linux-base (>= 4.5ubuntu1~16.04.1), linux-modules-6.7.0-4-generic-lpae
 Recommends: flash-kernel [armhf] | grub-efi-arm [armhf], initramfs-tools | linux-initramfs-tool
 Breaks: flash-kernel (<< 3.90ubuntu2) [arm64 armhf], s390-tools (<< 2.3.0-0ubuntu3) [s390x]
-Conflicts: linux-image-6.7.0-3-generic-lpae
-Suggests: fdutils, linux-unstable-tools, linux-headers-6.7.0-3-generic-lpae, linux-modules-extra-6.7.0-3-generic-lpae
+Conflicts: linux-image-6.7.0-4-generic-lpae
+Suggests: fdutils, linux-unstable-tools, linux-headers-6.7.0-4-generic-lpae, linux-modules-extra-6.7.0-4-generic-lpae
 Description: Linux kernel image for version 6.7.0 on 64 bit x86 SMP
  This package contains the unsigned Linux kernel image for version 6.7.0 on
  64 bit x86 SMP.
@@ -507,7 +507,7 @@ Description: Linux kernel image for version 6.7.0 on 64 bit x86 SMP
  the linux-generic-lpae meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
-Package: linux-modules-6.7.0-3-generic-lpae
+Package: linux-modules-6.7.0-4-generic-lpae
 Build-Profiles: <!stage1>
 Architecture: armhf
 Section: kernel
@@ -527,12 +527,12 @@ Description: Linux kernel extra modules for version 6.7.0 on 64 bit x86 SMP
  the linux-generic-lpae meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
-Package: linux-modules-extra-6.7.0-3-generic-lpae
+Package: linux-modules-extra-6.7.0-4-generic-lpae
 Build-Profiles: <!stage1>
 Architecture: armhf
 Section: kernel
 Priority: optional
-Depends: ${misc:Depends}, ${shlibs:Depends}, linux-modules-6.7.0-3-generic-lpae, wireless-regdb
+Depends: ${misc:Depends}, ${shlibs:Depends}, linux-modules-6.7.0-4-generic-lpae, wireless-regdb
 Description: Linux kernel extra modules for version 6.7.0 on 64 bit x86 SMP
  This package contains the Linux kernel extra modules for version 6.7.0 on
  64 bit x86 SMP.
@@ -549,21 +549,21 @@ Description: Linux kernel extra modules for version 6.7.0 on 64 bit x86 SMP
  the linux-generic-lpae meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
-Package: linux-headers-6.7.0-3-generic-lpae
+Package: linux-headers-6.7.0-4-generic-lpae
 Build-Profiles: <!stage1>
 Architecture: armhf
 Section: devel
 Priority: optional
-Depends: ${misc:Depends}, linux-unstable-headers-6.7.0-3, ${shlibs:Depends}
+Depends: ${misc:Depends}, linux-unstable-headers-6.7.0-4, ${shlibs:Depends}
 Provides: linux-headers, linux-headers-3.0
 Description: Linux kernel headers for version 6.7.0 on 64 bit x86 SMP
  This package provides kernel header files for version 6.7.0 on
  64 bit x86 SMP.
  .
  This is for sites that want the latest kernel headers.  Please read
- /usr/share/doc/linux-headers-6.7.0-3/debian.README.gz for details.
+ /usr/share/doc/linux-headers-6.7.0-4/debian.README.gz for details.
 
-Package: linux-unstable-lib-rust-6.7.0-3-generic-lpae
+Package: linux-unstable-lib-rust-6.7.0-4-generic-lpae
 Build-Profiles: <!stage1>
 Architecture: amd64
 Multi-Arch: foreign
@@ -574,7 +574,7 @@ Description: Rust library files related to Linux kernel version 6.7.0
  This package provides kernel library files for version 6.7.0, that allow to
  compile out-of-tree kernel modules written in Rust.
 
-Package: linux-image-unsigned-6.7.0-3-generic-lpae-dbgsym
+Package: linux-image-unsigned-6.7.0-4-generic-lpae-dbgsym
 Build-Profiles: <!stage1>
 Architecture: armhf
 Section: devel
@@ -591,31 +591,31 @@ Description: Linux kernel debug image for version 6.7.0 on 64 bit x86 SMP
  is uncompressed, and unstripped. This package also includes the
  unstripped modules.
 
-Package: linux-tools-6.7.0-3-generic-lpae
+Package: linux-tools-6.7.0-4-generic-lpae
 Build-Profiles: <!stage1>
 Architecture: armhf
 Section: devel
 Priority: optional
-Depends: ${misc:Depends}, linux-unstable-tools-6.7.0-3
-Description: Linux kernel version specific tools for version 6.7.0-3
+Depends: ${misc:Depends}, linux-unstable-tools-6.7.0-4
+Description: Linux kernel version specific tools for version 6.7.0-4
  This package provides the architecture dependant parts for kernel
  version locked tools (such as perf and x86_energy_perf_policy) for
- version 6.7.0-3 on
+ version 6.7.0-4 on
  64 bit x86.
 
-Package: linux-cloud-tools-6.7.0-3-generic-lpae
+Package: linux-cloud-tools-6.7.0-4-generic-lpae
 Build-Profiles: <!stage1>
 Architecture: armhf
 Section: devel
 Priority: optional
-Depends: ${misc:Depends}, linux-unstable-cloud-tools-6.7.0-3
-Description: Linux kernel version specific cloud tools for version 6.7.0-3
+Depends: ${misc:Depends}, linux-unstable-cloud-tools-6.7.0-4
+Description: Linux kernel version specific cloud tools for version 6.7.0-4
  This package provides the architecture dependant parts for kernel
- version locked tools for cloud for version 6.7.0-3 on
+ version locked tools for cloud for version 6.7.0-4 on
  64 bit x86.
 
 
-Package: linux-buildinfo-6.7.0-3-generic-lpae
+Package: linux-buildinfo-6.7.0-4-generic-lpae
 Build-Profiles: <!stage1>
 Architecture: armhf
 Section: kernel
@@ -629,18 +629,18 @@ Description: Linux kernel buildinfo for version 6.7.0 on 64 bit x86 SMP
  You likely do not want to install this package.
 
 
-Package: linux-modules-iwlwifi-6.7.0-3-generic-lpae
+Package: linux-modules-iwlwifi-6.7.0-4-generic-lpae
 Build-Profiles: <!stage1>
 Architecture: armhf
 Section: kernel
 Priority: optional
 Depends:
  ${misc:Depends},
- linux-image-6.7.0-3-generic-lpae | linux-image-unsigned-6.7.0-3-generic-lpae,
+ linux-image-6.7.0-4-generic-lpae | linux-image-unsigned-6.7.0-4-generic-lpae,
 Built-Using: ${linux:BuiltUsing}
-Description: Linux kernel iwlwifi modules for version 6.7.0-3
+Description: Linux kernel iwlwifi modules for version 6.7.0-4
  This package provides the Linux kernel iwlwifi modules for version
- 6.7.0-3.
+ 6.7.0-4.
  .
  You likely do not want to install this package directly. Instead, install the
  one of the linux-modules-iwlwifi-generic-lpae* meta-packages,
