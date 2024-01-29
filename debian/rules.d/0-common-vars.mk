@@ -203,7 +203,13 @@ kmake = make ARCH=$(build_arch) \
 	CROSS_COMPILE=$(CROSS_COMPILE) \
 	HOSTCC=$(HOSTCC) \
 	CC=$(CROSS_COMPILE)$(gcc) \
+	RUSTC=rustc-1.73 \
+	HOSTRUSTC=rustc-1.73 \
+	RUSTFMT=/usr/lib/rust-1.73/bin/rustfmt \
+	RUST_LIB_SRC=/usr/src/rustc-1.73.0/library \
 	BINDGEN=bindgen-0.65 \
+	CLANG_PATH=clang-17 \
+	LIBCLANG_PATH=/usr/lib/llvm-17/lib \
 	KERNELRELEASE=$(abi_release)-$(target_flavour) \
 	CONFIG_DEBUG_SECTION_MISMATCH=y \
 	KBUILD_BUILD_VERSION="$(uploadnum)" \
