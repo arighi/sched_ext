@@ -591,6 +591,9 @@ CONFIG_SATA_AHCI_PLATFORM                       note<'boot essential on highbank
 CONFIG_SATA_HIGHBANK                            policy<{'armhf': 'y'}>
 CONFIG_SATA_HIGHBANK                            note<'LP: #1703430'>
 
+CONFIG_SCHED_CLASS_EXT                          policy<{'amd64': 'y', 'arm64': 'y', 'armhf': 'y', 'ppc64el': 'y', 'riscv64': 'y', 's390x': 'y'}>
+CONFIG_SCHED_CLASS_EXT                          note<'LP: #2045503'>
+
 CONFIG_SCLP_OFB                                 policy<{'s390x': 'y'}>
 CONFIG_SCLP_OFB                                 note<'LP: #1787898'>
 
@@ -4855,6 +4858,7 @@ CONFIG_EXTCON_USBC_TUSB320                      policy<{'amd64': 'm', 'arm64': '
 CONFIG_EXTCON_USB_GPIO                          policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'ppc64el': 'm', 'riscv64': 'm', 's390x': '-'}>
 CONFIG_EXTRA_FIRMWARE                           policy<{'amd64': '""', 'arm64': '""', 'armhf': '""', 'ppc64el': '""', 'riscv64': '""', 's390x': '""'}>
 CONFIG_EXTRA_TARGETS                            policy<{'ppc64el': '""'}>
+CONFIG_EXT_GROUP_SCHED                          policy<{'amd64': 'y', 'arm64': 'y', 'armhf': 'y', 'ppc64el': 'y', 'riscv64': 'y', 's390x': 'y'}>
 CONFIG_EXYNOS5422_DMC                           policy<{'armhf': 'n'}>
 CONFIG_EXYNOS_ADC                               policy<{'armhf': 'n'}>
 CONFIG_EXYNOS_AUDSS_CLK_CON                     policy<{'armhf': 'n'}>
