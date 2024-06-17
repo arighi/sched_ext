@@ -1,3 +1,9 @@
+linux (6.9.0-0.0+scx0) noble; urgency=medium
+
+  * Empty entry.
+
+ -- Andrea Righi <andrea.righi@canonical.com>  Mon, 17 Jun 2024 13:53:28 +0200
+
 linux (6.8.0-36.36+scx2) noble; urgency=medium
 
   * Fix system hang while entering suspend with AMD Navi3x graphics
