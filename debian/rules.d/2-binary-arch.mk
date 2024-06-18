@@ -19,7 +19,6 @@ $(stampdir)/stamp-prepare-tree-%: debian/scripts/fix-filenames
 	python3 debian/scripts/misc/annotations --export --arch $(arch) --flavour $(target_flavour) > $(builddir)/build-$*/.config
 	sed -i 's/.*CONFIG_VERSION_SIGNATURE.*/CONFIG_VERSION_SIGNATURE="Ubuntu $(release)-$(revision)-$* $(raw_kernelversion)"/' $(builddir)/build-$*/.config
 	find $(builddir)/build-$* -name "*.ko" | xargs rm -f
-	$(kmake) O=$(builddir)/build-$* $(conc_level) rustavailable || true
 	$(kmake) O=$(builddir)/build-$* $(conc_level) olddefconfig
 	$(stamp)
 
