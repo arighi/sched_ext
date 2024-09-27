@@ -894,6 +894,17 @@ retry_same_fence:
 	}
 
 	ret = wait_event_timeout(ct->g2h_fence_wq, g2h_fence.done, HZ);
+
+	/*
+	 * It is observed that for above GuC CT request G2H IRQ triggered
+	 * and g2h_worker queued, but it didn't get opportunity to execute
+	 * and timeout occurred. To address the g2h_worker is being flushed.
+	 */
+	if (!ret) {
+		flush_work(&ct->g2h_worker);
+		ret = wait_event_timeout(ct->g2h_fence_wq, g2h_fence.done, HZ);
+	}
+
 	if (!ret) {
 		xe_gt_err(gt, "Timed out wait for G2H, fence %u, action %04x",
 			  g2h_fence.seqno, action[0]);
