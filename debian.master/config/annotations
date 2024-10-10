@@ -4964,6 +4964,7 @@ CONFIG_EXTCON_USBC_TUSB320                      policy<{'amd64': 'm', 'arm64': '
 CONFIG_EXTCON_USB_GPIO                          policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'ppc64el': 'm', 'riscv64': 'm', 's390x': '-'}>
 CONFIG_EXTRA_FIRMWARE                           policy<{'amd64': '""', 'arm64': '""', 'armhf': '""', 'ppc64el': '""', 'riscv64': '""', 's390x': '""'}>
 CONFIG_EXTRA_TARGETS                            policy<{'ppc64el': '""'}>
+CONFIG_EXT_GROUP_SCHED                          policy<{'amd64': 'y', 'arm64': 'y', 'ppc64el': 'y', 'riscv64': 'y', 's390x': 'y'}>
 CONFIG_EXYNOS5422_DMC                           policy<{'armhf': 'n'}>
 CONFIG_EXYNOS_ADC                               policy<{'armhf': 'n'}>
 CONFIG_EXYNOS_AUDSS_CLK_CON                     policy<{'armhf': 'n'}>
@@ -5665,6 +5666,7 @@ CONFIG_GREYBUS_SPI                              policy<{'amd64': 'm', 'arm64': '
 CONFIG_GREYBUS_UART                             policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'ppc64el': 'm', 'riscv64': 'm'}>
 CONFIG_GREYBUS_USB                              policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'ppc64el': 'm', 'riscv64': 'm'}>
 CONFIG_GREYBUS_VIBRATOR                         policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'ppc64el': 'm', 'riscv64': 'm'}>
+CONFIG_GROUP_SCHED_WEIGHT                       policy<{'amd64': 'y', 'arm64': 'y', 'armhf': 'y', 'ppc64el': 'y', 'riscv64': 'y', 's390x': 'y'}>
 CONFIG_GRO_CELLS                                policy<{'amd64': 'y', 'arm64': 'y', 'armhf': 'y', 'ppc64el': 'y', 'riscv64': 'y', 's390x': 'y'}>
 CONFIG_GTP                                      policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'ppc64el': 'm', 'riscv64': 'm', 's390x': 'm'}>
 CONFIG_GUEST_PERF_EVENTS                        policy<{'amd64': 'y', 'arm64': 'y'}>
@@ -11721,6 +11723,7 @@ CONFIG_SCD4X                                    policy<{'amd64': 'm', 'arm64': '
 CONFIG_SCF_TORTURE_TEST                         policy<{'amd64': 'n', 'arm64': 'n', 'armhf': 'n', 'ppc64el': 'n', 'riscv64': 'n', 's390x': 'n'}>
 CONFIG_SCHEDSTATS                               policy<{'amd64': 'y', 'arm64': 'y', 'armhf': 'y', 'ppc64el': 'y', 'riscv64': 'y', 's390x': 'y'}>
 CONFIG_SCHED_AUTOGROUP                          policy<{'amd64': 'y', 'arm64': 'y', 'armhf': 'y', 'ppc64el': 'y', 'riscv64': 'y', 's390x': 'y'}>
+CONFIG_SCHED_CLASS_EXT                          policy<{'amd64': 'y', 'arm64': 'y', 'ppc64el': 'y', 'riscv64': 'y', 's390x': 'y'}>
 CONFIG_SCHED_CLUSTER                            policy<{'amd64': 'y', 'arm64': 'y'}>
 CONFIG_SCHED_CORE                               policy<{'amd64': 'y', 'arm64': 'y', 'armhf': '-', 'ppc64el': 'y', 's390x': 'y'}>
 CONFIG_SCHED_DEBUG                              policy<{'amd64': 'y', 'arm64': 'y', 'armhf': 'y', 'ppc64el': 'y', 'riscv64': 'y', 's390x': 'y'}>
