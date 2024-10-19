@@ -874,6 +874,14 @@ static struct scx_exit_info *scx_exit_info;
 static atomic_long_t scx_nr_rejected = ATOMIC_LONG_INIT(0);
 static atomic_long_t scx_hotplug_seq = ATOMIC_LONG_INIT(0);
 
+#ifdef CONFIG_SMP
+/*
+ * Per-CPU cpumasks used by the built-in idle CPU selection policy to determine
+ * task's LLC domain.
+ */
+static DEFINE_PER_CPU(cpumask_var_t, select_cpu_mask);
+#endif /* CONFIG_SMP */
+
 /*
  * A monotically increasing sequence number that is incremented every time a
  * scheduler is enabled. This can be used by to check if any custom sched_ext
@@ -3122,6 +3130,8 @@ found:
 static s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu,
 			      u64 wake_flags, bool *found)
 {
+	struct cpumask *llc_cpus = this_cpu_cpumask_var_ptr(select_cpu_mask);
+	struct sched_domain *sd;
 	s32 cpu;
 
 	*found = false;
@@ -3169,26 +3179,61 @@ static s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu,
 	}
 
 	/*
+	 * Determine the task's LLC domain.
+	 */
+	sd = rcu_dereference(per_cpu(sd_llc, prev_cpu));
+	if (sd)
+		cpumask_and(llc_cpus, sched_domain_span(sd), p->cpus_ptr);
+	else
+		cpumask_copy(llc_cpus, p->cpus_ptr);
+
+	/*
 	 * If CPU has SMT, any wholly idle CPU is likely a better pick than
 	 * partially idle @prev_cpu.
 	 */
 	if (sched_smt_active()) {
+		/*
+		 * Reuse @prev_cpu if it's part of a fully idle core.
+		 */
 		if (cpumask_test_cpu(prev_cpu, idle_masks.smt) &&
 		    test_and_clear_cpu_idle(prev_cpu)) {
 			cpu = prev_cpu;
 			goto cpu_found;
 		}
 
+		/*
+		 * Search for any fully idle core in the same LLC domain.
+		 */
+		cpu = scx_pick_idle_cpu(llc_cpus, SCX_PICK_IDLE_CORE);
+		if (cpu >= 0)
+			goto cpu_found;
+
+		/*
+		 * Search for any full idle core usable by the task.
+		 */
 		cpu = scx_pick_idle_cpu(p->cpus_ptr, SCX_PICK_IDLE_CORE);
 		if (cpu >= 0)
 			goto cpu_found;
 	}
 
+	/*
+	 * Reuse @prev_cpu if it's a idle.
+	 */
 	if (test_and_clear_cpu_idle(prev_cpu)) {
 		cpu = prev_cpu;
 		goto cpu_found;
 	}
 
+	/*
+	 * Search for any idle CPU in the same LLC domain.
+	 */
+	cpu = scx_pick_idle_cpu(llc_cpus, 0);
+	if (cpu >= 0)
+		goto cpu_found;
+
+	/*
+	 * Search for any idle CPU usable by the task.
+	 */
 	cpu = scx_pick_idle_cpu(p->cpus_ptr, 0);
 	if (cpu >= 0)
 		goto cpu_found;
@@ -7189,6 +7234,19 @@ static const struct btf_kfunc_id_set scx_kfunc_set_any = {
 	.set			= &scx_kfunc_ids_any,
 };
 
+#ifdef CONFIG_SMP
+static void init_select_cpu_mask(void)
+{
+	int i;
+
+	for_each_possible_cpu(i)
+		zalloc_cpumask_var_node(&per_cpu(select_cpu_mask, i),
+					GFP_KERNEL, cpu_to_node(i));
+}
+#else
+static inline void init_select_cpu_mask(void) {}
+#endif /* CONFIG_SMP */
+
 static int __init scx_init(void)
 {
 	int ret;
@@ -7249,6 +7307,8 @@ static int __init scx_init(void)
 		pr_err("sched_ext: Failed to add global attributes\n");
 		return ret;
 	}
+
+	init_select_cpu_mask();
 
 	return 0;
 }
