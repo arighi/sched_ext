@@ -248,10 +248,16 @@ static inline const struct cpumask *cpu_cpu_mask(int cpu)
 #ifdef CONFIG_NUMA
 int sched_numa_find_nth_cpu(const struct cpumask *cpus, int cpu, int node);
 extern const struct cpumask *sched_numa_hop_mask(unsigned int node, unsigned int hops);
-#else
+extern int sched_numa_hop_node(nodemask_t *hop_nodes, int start, unsigned int state);
+#else /* !CONFIG_NUMA */
 static __always_inline int sched_numa_find_nth_cpu(const struct cpumask *cpus, int cpu, int node)
 {
 	return cpumask_nth_and(cpu, cpus, cpu_online_mask);
+}
+
+static inline int sched_numa_hop_node(nodemask_t *hop_nodes, int start, unsigned int state)
+{
+	return NUMA_NO_NODE;
 }
 
 static inline const struct cpumask *
@@ -260,6 +266,26 @@ sched_numa_hop_mask(unsigned int node, unsigned int hops)
 	return ERR_PTR(-EOPNOTSUPP);
 }
 #endif	/* CONFIG_NUMA */
+
+/**
+ * for_each_numa_hop_node - iterate over NUMA nodes at increasing hop distances
+ *                          from a given starting node.
+ * @__node: the iteration variable, representing the current NUMA node.
+ * @__start: the NUMA node to start the iteration from.
+ * @__hop_nodes: a nodemask_t to track the visited nodes.
+ * @__state: state of NUMA nodes to iterate.
+ *
+ * Requires rcu_lock to be held.
+ *
+ * This macro iterates over NUMA nodes in increasing distance from
+ * @start_node.
+ *
+ * Yields NUMA_NO_NODE when all the nodes have been visited.
+ */
+#define for_each_numa_hop_node(__node, __start, __hop_nodes, __state)		\
+	for (int __node = __start;						\
+	     __node != NUMA_NO_NODE;						\
+	     __node = sched_numa_hop_node(&(__hop_nodes), __start, __state))
 
 /**
  * for_each_numa_hop_mask - iterate over cpumasks of increasing NUMA distance

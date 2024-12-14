@@ -2186,6 +2186,55 @@ unlock:
 EXPORT_SYMBOL_GPL(sched_numa_find_nth_cpu);
 
 /**
+ * sched_numa_hop_node - Find the NUMA node at the closest hop distance
+ *                       from node @start.
+ *
+ * @hop_nodes: a pointer to a nodemask_t representing the visited nodes.
+ * @start: the NUMA node to start the hop search from.
+ * @state: the node state to filter nodes by.
+ *
+ * This function iterates over all NUMA nodes in the given state and
+ * calculates the hop distance to the starting node. It returns the NUMA
+ * node that is the closest in terms of hop distance
+ * that has not already been considered (not set in @hop_nodes). If the
+ * node is found, it is marked as considered in the @hop_nodes bitmask.
+ *
+ * The function checks if the node is not the start node and ensures it is
+ * not already part of the hop_nodes set. It then computes the distance to
+ * the start node using the node_distance() function. The closest node is
+ * chosen based on the minimum distance.
+ *
+ * Returns the NUMA node ID closest in terms of hop distance from the
+ * @start node, or NUMA_NO_NODE if no node is found (or all nodes have been
+ * visited).
+ */
+int sched_numa_hop_node(nodemask_t *hop_nodes, int start, unsigned int state)
+{
+	int dist, n, min_node, min_dist;
+
+	if (state >= NR_NODE_STATES)
+		return NUMA_NO_NODE;
+
+	min_node = NUMA_NO_NODE;
+	min_dist = INT_MAX;
+
+	for_each_node_state(n, state) {
+		if (n == start || node_isset(n, *hop_nodes))
+			continue;
+		dist = node_distance(start, n);
+		if (dist < min_dist) {
+			min_dist = dist;
+			min_node = n;
+		}
+	}
+	if (min_node != NUMA_NO_NODE)
+		node_set(min_node, *hop_nodes);
+
+	return min_node;
+}
+EXPORT_SYMBOL_GPL(sched_numa_hop_node);
+
+/**
  * sched_numa_hop_mask() - Get the cpumask of CPUs at most @hops hops away from
  *                         @node
  * @node: The node to count hops from.
