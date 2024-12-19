@@ -199,6 +199,12 @@ static s32 scx_pick_idle_cpu(const struct cpumask *cpus_allowed, int node, u64 f
 		cpu = pick_idle_cpu_from_node(cpus_allowed, n, flags);
 		if (cpu >= 0)
 			break;
+		/*
+		 * Check if the search is restricted to the same core or
+		 * the same node.
+		 */
+		if (flags & SCX_PICK_IDLE_NODE)
+			break;
 	}
 
 	return cpu;
@@ -495,7 +501,8 @@ static s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu,
 		 * Search for any fully idle core in the same LLC domain.
 		 */
 		if (llc_cpus) {
-			cpu = pick_idle_cpu_from_node(llc_cpus, node, SCX_PICK_IDLE_CORE);
+			cpu = scx_pick_idle_cpu(llc_cpus, node,
+						SCX_PICK_IDLE_CORE | SCX_PICK_IDLE_NODE);
 			if (cpu >= 0)
 				goto cpu_found;
 		}
@@ -533,7 +540,7 @@ static s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu,
 	 * Search for any idle CPU in the same LLC domain.
 	 */
 	if (llc_cpus) {
-		cpu = pick_idle_cpu_from_node(llc_cpus, node, 0);
+		cpu = scx_pick_idle_cpu(llc_cpus, node, SCX_PICK_IDLE_NODE);
 		if (cpu >= 0)
 			goto cpu_found;
 	}
