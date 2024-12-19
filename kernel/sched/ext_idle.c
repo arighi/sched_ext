@@ -28,6 +28,31 @@ static bool check_builtin_idle_enabled(void)
 	return false;
 }
 
+static bool check_builtin_idle_per_node_enabled(void)
+{
+	if (static_branch_likely(&scx_builtin_idle_per_node))
+		return true;
+
+	scx_ops_error("per-node idle tracking is disabled");
+	return false;
+}
+
+/*
+ * Return the node id associated to a target idle CPU (used to determine
+ * the proper idle cpumask).
+ */
+static int idle_cpu_to_node(int cpu)
+{
+	int node;
+
+	if (static_branch_maybe(CONFIG_NUMA, &scx_builtin_idle_per_node))
+		node = cpu_to_node(cpu);
+	else
+		node = NUMA_FLAT_NODE;
+
+	return node;
+}
+
 #ifdef CONFIG_SMP
 struct idle_cpumask {
 	cpumask_var_t cpu;
@@ -82,22 +107,6 @@ static void idle_masks_init(void)
 }
 
 static DEFINE_STATIC_KEY_FALSE(scx_selcpu_topo_llc);
-
-/*
- * Return the node id associated to a target idle CPU (used to determine
- * the proper idle cpumask).
- */
-static int idle_cpu_to_node(int cpu)
-{
-	int node;
-
-	if (static_branch_maybe(CONFIG_NUMA, &scx_builtin_idle_per_node))
-		node = cpu_to_node(cpu);
-	else
-		node = NUMA_FLAT_NODE;
-
-	return node;
-}
 
 static bool test_and_clear_cpu_idle(int cpu)
 {
@@ -609,7 +618,43 @@ static void reset_idle_masks(void) {}
 /********************************************************************************
  * Helpers that can be called from the BPF scheduler.
  */
+
+static int validate_node(int node)
+{
+	if (!check_builtin_idle_per_node_enabled())
+		return -EINVAL;
+
+	/* If no node is specified, use the current one */
+	if (node == NUMA_NO_NODE)
+		return numa_node_id();
+
+	/* Make sure node is in a valid range */
+	if (node < 0 || node >= nr_node_ids) {
+		scx_ops_error("invalid node %d", node);
+		return -ENOENT;
+	}
+
+	/* Make sure the node is part of the set of possible nodes */
+	if (!node_possible(node)) {
+		scx_ops_error("unavailable node %d", node);
+		return -EINVAL;
+	}
+
+	return node;
+}
+
 __bpf_kfunc_start_defs();
+
+/**
+ * scx_bpf_cpu_to_node - Return the NUMA node the given @cpu belongs to
+ */
+__bpf_kfunc int scx_bpf_cpu_to_node(s32 cpu)
+{
+	if (cpu < 0 || cpu >= nr_cpu_ids)
+		return -EINVAL;
+
+	return idle_cpu_to_node(cpu);
+}
 
 /**
  * scx_bpf_select_cpu_dfl - The default implementation of ops.select_cpu()
@@ -644,6 +689,28 @@ prev_cpu:
 }
 
 /**
+ * scx_bpf_get_idle_cpumask_node - Get a referenced kptr to the idle-tracking
+ * per-CPU cpumask of a target NUMA node.
+ *
+ * NUMA_NO_NODE is interpreted as the current node.
+ *
+ * Returns an empty cpumask if idle tracking is not enabled, if @node is not
+ * valid, or running on a UP kernel.
+ */
+__bpf_kfunc const struct cpumask *scx_bpf_get_idle_cpumask_node(int node)
+{
+	node = validate_node(node);
+	if (node < 0)
+		return cpu_none_mask;
+
+#ifdef CONFIG_SMP
+	return get_idle_cpumask(node);
+#else
+	return cpu_none_mask;
+#endif
+}
+
+/**
  * scx_bpf_get_idle_cpumask - Get a referenced kptr to the idle-tracking
  * per-CPU cpumask.
  *
@@ -660,6 +727,32 @@ __bpf_kfunc const struct cpumask *scx_bpf_get_idle_cpumask(void)
 	}
 
 	return get_idle_cpumask(NUMA_FLAT_NODE);
+}
+
+/**
+ * scx_bpf_get_idle_smtmask_node - Get a referenced kptr to the idle-tracking,
+ * per-physical-core cpumask of a target NUMA node. Can be used to determine
+ * if an entire physical core is free.
+ *
+ * NUMA_NO_NODE is interpreted as the current node.
+ *
+ * Returns an empty cpumask if idle tracking is not enabled, if @node is not
+ * valid, or running on a UP kernel.
+ */
+__bpf_kfunc const struct cpumask *scx_bpf_get_idle_smtmask_node(int node)
+{
+	node = validate_node(node);
+	if (node < 0)
+		return cpu_none_mask;
+
+#ifdef CONFIG_SMP
+	if (sched_smt_active())
+		return get_idle_smtmask(node);
+	else
+		return get_idle_cpumask(node);
+#else
+	return cpu_none_mask;
+#endif
 }
 
 /**
@@ -718,6 +811,36 @@ __bpf_kfunc bool scx_bpf_test_and_clear_cpu_idle(s32 cpu)
 		return test_and_clear_cpu_idle(cpu);
 	else
 		return false;
+}
+
+/**
+ * scx_bpf_pick_idle_cpu_node - Pick and claim an idle cpu from a NUMA node
+ * @cpus_allowed: Allowed cpumask
+ * @node: target NUMA node
+ * @flags: %SCX_PICK_IDLE_CPU_* flags
+ *
+ * Pick and claim an idle cpu in @cpus_allowed from the NUMA node @node.
+ * Returns the picked idle cpu number on success. -%EBUSY if no matching cpu
+ * was found.
+ *
+ * If @node is NUMA_NO_NODE, the search is restricted to the current NUMA
+ * node. Otherwise, the search starts from @node and proceeds to other
+ * online NUMA nodes in order of increasing distance (unless
+ * SCX_PICK_IDLE_NODE is specified, in which case the search is limited to
+ * the target @node).
+ *
+ * Unavailable if ops.update_idle() is implemented and
+ * %SCX_OPS_KEEP_BUILTIN_IDLE is not set or if %SCX_OPS_KEEP_BUILTIN_IDLE is
+ * not set.
+ */
+__bpf_kfunc s32 scx_bpf_pick_idle_cpu_node(const struct cpumask *cpus_allowed,
+					   int node, u64 flags)
+{
+	node = validate_node(node);
+	if (node < 0)
+		return node;
+
+	return scx_pick_idle_cpu(cpus_allowed, node, flags);
 }
 
 /**
@@ -783,11 +906,15 @@ __bpf_kfunc s32 scx_bpf_pick_any_cpu(const struct cpumask *cpus_allowed,
 __bpf_kfunc_end_defs();
 
 BTF_KFUNCS_START(scx_kfunc_ids_select_cpu)
+BTF_ID_FLAGS(func, scx_bpf_cpu_to_node)
 BTF_ID_FLAGS(func, scx_bpf_select_cpu_dfl, KF_RCU)
+BTF_ID_FLAGS(func, scx_bpf_get_idle_cpumask_node, KF_ACQUIRE)
 BTF_ID_FLAGS(func, scx_bpf_get_idle_cpumask, KF_ACQUIRE)
+BTF_ID_FLAGS(func, scx_bpf_get_idle_smtmask_node, KF_ACQUIRE)
 BTF_ID_FLAGS(func, scx_bpf_get_idle_smtmask, KF_ACQUIRE)
 BTF_ID_FLAGS(func, scx_bpf_put_idle_cpumask, KF_RELEASE)
 BTF_ID_FLAGS(func, scx_bpf_test_and_clear_cpu_idle)
+BTF_ID_FLAGS(func, scx_bpf_pick_idle_cpu_node, KF_RCU)
 BTF_ID_FLAGS(func, scx_bpf_pick_idle_cpu, KF_RCU)
 BTF_ID_FLAGS(func, scx_bpf_pick_any_cpu, KF_RCU)
 BTF_KFUNCS_END(scx_kfunc_ids_select_cpu)
