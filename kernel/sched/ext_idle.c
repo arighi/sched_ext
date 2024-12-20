@@ -10,7 +10,14 @@
  * Copyright (c) 2024 Andrea Righi <arighi@nvidia.com>
  */
 
+/*
+ * If NUMA awareness is disabled consider only node 0 as a single global
+ * NUMA node.
+ */
+#define NUMA_FLAT_NODE	0
+
 static DEFINE_STATIC_KEY_FALSE(scx_builtin_idle_enabled);
+static DEFINE_STATIC_KEY_FALSE(scx_builtin_idle_per_node);
 
 static bool check_builtin_idle_enabled(void)
 {
@@ -22,22 +29,82 @@ static bool check_builtin_idle_enabled(void)
 }
 
 #ifdef CONFIG_SMP
-#ifdef CONFIG_CPUMASK_OFFSTACK
-#define CL_ALIGNED_IF_ONSTACK
-#else
-#define CL_ALIGNED_IF_ONSTACK __cacheline_aligned_in_smp
-#endif
-
-static struct {
+struct idle_cpumask {
 	cpumask_var_t cpu;
 	cpumask_var_t smt;
-} idle_masks CL_ALIGNED_IF_ONSTACK;
+};
+
+/*
+ * cpumasks to track idle CPUs within each NUMA node.
+ *
+ * If SCX_OPS_BUILTIN_IDLE_PER_NODE is not specified, a single flat cpumask
+ * from node 0 is used to track all idle CPUs system-wide.
+ */
+static struct idle_cpumask **scx_idle_masks;
+
+static inline struct idle_cpumask *get_idle_mask(int node)
+{
+	if (node == NUMA_NO_NODE)
+		node = numa_node_id();
+	else if (WARN_ON_ONCE(node < 0 || node >= nr_node_ids))
+		return NULL;
+	return scx_idle_masks[node];
+}
+
+static inline struct cpumask *get_idle_cpumask(int node)
+{
+	struct idle_cpumask *mask = get_idle_mask(node);
+
+	return mask ? mask->cpu : cpu_none_mask;
+}
+
+static inline struct cpumask *get_idle_smtmask(int node)
+{
+	struct idle_cpumask *mask = get_idle_mask(node);
+
+	return mask ? mask->smt : cpu_none_mask;
+}
+
+static void idle_masks_init(void)
+{
+	int node;
+
+	scx_idle_masks = kcalloc(num_possible_nodes(), sizeof(*scx_idle_masks), GFP_KERNEL);
+	BUG_ON(!scx_idle_masks);
+
+	for_each_node(node) {
+		scx_idle_masks[node] = kzalloc_node(sizeof(**scx_idle_masks), GFP_KERNEL, node);
+		BUG_ON(!scx_idle_masks[node]);
+
+		BUG_ON(!alloc_cpumask_var_node(&scx_idle_masks[node]->cpu, GFP_KERNEL, node));
+		BUG_ON(!alloc_cpumask_var_node(&scx_idle_masks[node]->smt, GFP_KERNEL, node));
+	}
+}
 
 static DEFINE_STATIC_KEY_FALSE(scx_selcpu_topo_llc);
 static DEFINE_STATIC_KEY_FALSE(scx_selcpu_topo_numa);
 
+/*
+ * Return the node id associated to a target idle CPU (used to determine
+ * the proper idle cpumask).
+ */
+static int idle_cpu_to_node(int cpu)
+{
+	int node;
+
+	if (static_branch_maybe(CONFIG_NUMA, &scx_builtin_idle_per_node))
+		node = cpu_to_node(cpu);
+	else
+		node = NUMA_FLAT_NODE;
+
+	return node;
+}
+
 static bool test_and_clear_cpu_idle(int cpu)
 {
+	int node = idle_cpu_to_node(cpu);
+	struct cpumask *idle_cpus = get_idle_cpumask(node);
+
 #ifdef CONFIG_SCHED_SMT
 	/*
 	 * SMT mask should be cleared whether we can claim @cpu or not. The SMT
@@ -46,33 +113,37 @@ static bool test_and_clear_cpu_idle(int cpu)
 	 */
 	if (sched_smt_active()) {
 		const struct cpumask *smt = cpu_smt_mask(cpu);
+		struct cpumask *idle_smts = get_idle_smtmask(node);
 
 		/*
 		 * If offline, @cpu is not its own sibling and
 		 * scx_pick_idle_cpu() can get caught in an infinite loop as
-		 * @cpu is never cleared from idle_masks.smt. Ensure that @cpu
-		 * is eventually cleared.
+		 * @cpu is never cleared from the idle SMT mask. Ensure that
+		 * @cpu is eventually cleared.
 		 *
 		 * NOTE: Use cpumask_intersects() and cpumask_test_cpu() to
 		 * reduce memory writes, which may help alleviate cache
 		 * coherence pressure.
 		 */
-		if (cpumask_intersects(smt, idle_masks.smt))
-			cpumask_andnot(idle_masks.smt, idle_masks.smt, smt);
-		else if (cpumask_test_cpu(cpu, idle_masks.smt))
-			__cpumask_clear_cpu(cpu, idle_masks.smt);
+		if (cpumask_intersects(smt, idle_smts))
+			cpumask_andnot(idle_smts, idle_smts, smt);
+		else if (cpumask_test_cpu(cpu, idle_smts))
+			__cpumask_clear_cpu(cpu, idle_smts);
 	}
 #endif
-	return cpumask_test_and_clear_cpu(cpu, idle_masks.cpu);
+	return cpumask_test_and_clear_cpu(cpu, idle_cpus);
 }
 
-static s32 scx_pick_idle_cpu(const struct cpumask *cpus_allowed, u64 flags)
+/*
+ * Pick an idle CPU in a specific NUMA node.
+ */
+static s32 pick_idle_cpu_from_node(const struct cpumask *cpus_allowed, int node, u64 flags)
 {
 	int cpu;
 
 retry:
 	if (sched_smt_active()) {
-		cpu = cpumask_any_and_distribute(idle_masks.smt, cpus_allowed);
+		cpu = cpumask_any_and_distribute(get_idle_smtmask(node), cpus_allowed);
 		if (cpu < nr_cpu_ids)
 			goto found;
 
@@ -80,15 +151,57 @@ retry:
 			return -EBUSY;
 	}
 
-	cpu = cpumask_any_and_distribute(idle_masks.cpu, cpus_allowed);
+	cpu = cpumask_any_and_distribute(get_idle_cpumask(node), cpus_allowed);
 	if (cpu >= nr_cpu_ids)
 		return -EBUSY;
 
 found:
 	if (test_and_clear_cpu_idle(cpu))
 		return cpu;
-	else
-		goto retry;
+	goto retry;
+}
+
+/*
+ * Find the best idle CPU in the system, relative to @node.
+ *
+ * If @node is NUMA_NO_NODE, start from the current node.
+ */
+static s32 scx_pick_idle_cpu(const struct cpumask *cpus_allowed, int node, u64 flags)
+{
+	nodemask_t hop_nodes = NODE_MASK_NONE;
+	s32 cpu = -EBUSY;
+
+	if (!static_branch_maybe(CONFIG_NUMA, &scx_builtin_idle_per_node))
+		return pick_idle_cpu_from_node(cpus_allowed, NUMA_FLAT_NODE, flags);
+
+	/*
+	 * If a NUMA node was not specified, start with the current one.
+	 */
+	if (node == NUMA_NO_NODE)
+		node = numa_node_id();
+
+	/*
+	 * Traverse all nodes in order of increasing distance, starting
+	 * from prev_cpu's node.
+	 *
+	 * This loop is O(N^2), with N being the amount of NUMA nodes,
+	 * which might be quite expensive in large NUMA systems. However,
+	 * this complexity comes into play only when a scheduler enables
+	 * SCX_OPS_BUILTIN_IDLE_PER_NODE and it's requesting an idle CPU
+	 * without specifying a target NUMA node, so it shouldn't be a
+	 * bottleneck is most cases.
+	 *
+	 * As a future optimization we may want to cache the list of hop
+	 * nodes in a per-node array, instead of actually traversing them
+	 * every time.
+	 */
+	for_each_numa_hop_node(n, node, hop_nodes, N_POSSIBLE) {
+		cpu = pick_idle_cpu_from_node(cpus_allowed, n, flags);
+		if (cpu >= 0)
+			break;
+	}
+
+	return cpu;
 }
 
 /*
@@ -208,7 +321,7 @@ static bool llc_numa_mismatch(void)
  * CPU belongs to a single LLC domain, and that each LLC domain is entirely
  * contained within a single NUMA node.
  */
-static void update_selcpu_topology(void)
+static void update_selcpu_topology(struct sched_ext_ops *ops)
 {
 	bool enable_llc = false, enable_numa = false;
 	unsigned int nr_cpus;
@@ -298,6 +411,7 @@ static s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu,
 {
 	const struct cpumask *llc_cpus = NULL;
 	const struct cpumask *numa_cpus = NULL;
+	int node = idle_cpu_to_node(prev_cpu);
 	s32 cpu;
 
 	*found = false;
@@ -355,9 +469,9 @@ static s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu,
 		 * piled up on it even if there is an idle core elsewhere on
 		 * the system.
 		 */
-		if (!cpumask_empty(idle_masks.cpu) &&
-		    !(current->flags & PF_EXITING) &&
-		    cpu_rq(cpu)->scx.local_dsq.nr == 0) {
+		if (!(current->flags & PF_EXITING) &&
+		    cpu_rq(cpu)->scx.local_dsq.nr == 0 &&
+		    !cpumask_empty(get_idle_cpumask(idle_cpu_to_node(cpu)))) {
 			if (cpumask_test_cpu(cpu, p->cpus_ptr))
 				goto cpu_found;
 		}
@@ -371,7 +485,7 @@ static s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu,
 		/*
 		 * Keep using @prev_cpu if it's part of a fully idle core.
 		 */
-		if (cpumask_test_cpu(prev_cpu, idle_masks.smt) &&
+		if (cpumask_test_cpu(prev_cpu, get_idle_smtmask(node)) &&
 		    test_and_clear_cpu_idle(prev_cpu)) {
 			cpu = prev_cpu;
 			goto cpu_found;
@@ -381,7 +495,7 @@ static s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu,
 		 * Search for any fully idle core in the same LLC domain.
 		 */
 		if (llc_cpus) {
-			cpu = scx_pick_idle_cpu(llc_cpus, SCX_PICK_IDLE_CORE);
+			cpu = pick_idle_cpu_from_node(llc_cpus, node, SCX_PICK_IDLE_CORE);
 			if (cpu >= 0)
 				goto cpu_found;
 		}
@@ -390,15 +504,19 @@ static s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu,
 		 * Search for any fully idle core in the same NUMA node.
 		 */
 		if (numa_cpus) {
-			cpu = scx_pick_idle_cpu(numa_cpus, SCX_PICK_IDLE_CORE);
+			cpu = scx_pick_idle_cpu(numa_cpus, node, SCX_PICK_IDLE_CORE);
 			if (cpu >= 0)
 				goto cpu_found;
 		}
 
 		/*
 		 * Search for any full idle core usable by the task.
+		 *
+		 * If NUMA aware idle selection is enabled, the search will
+		 * begin in prev_cpu's node and proceed to other nodes in
+		 * order of increasing distance.
 		 */
-		cpu = scx_pick_idle_cpu(p->cpus_ptr, SCX_PICK_IDLE_CORE);
+		cpu = scx_pick_idle_cpu(p->cpus_ptr, node, SCX_PICK_IDLE_CORE);
 		if (cpu >= 0)
 			goto cpu_found;
 	}
@@ -415,7 +533,7 @@ static s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu,
 	 * Search for any idle CPU in the same LLC domain.
 	 */
 	if (llc_cpus) {
-		cpu = scx_pick_idle_cpu(llc_cpus, 0);
+		cpu = pick_idle_cpu_from_node(llc_cpus, node, 0);
 		if (cpu >= 0)
 			goto cpu_found;
 	}
@@ -424,7 +542,7 @@ static s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu,
 	 * Search for any idle CPU in the same NUMA node.
 	 */
 	if (numa_cpus) {
-		cpu = scx_pick_idle_cpu(numa_cpus, 0);
+		cpu = pick_idle_cpu_from_node(numa_cpus, node, 0);
 		if (cpu >= 0)
 			goto cpu_found;
 	}
@@ -432,7 +550,7 @@ static s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu,
 	/*
 	 * Search for any idle CPU usable by the task.
 	 */
-	cpu = scx_pick_idle_cpu(p->cpus_ptr, 0);
+	cpu = scx_pick_idle_cpu(p->cpus_ptr, node, 0);
 	if (cpu >= 0)
 		goto cpu_found;
 
@@ -448,17 +566,33 @@ cpu_found:
 
 static void reset_idle_masks(void)
 {
+	int node;
+
+	if (!static_branch_maybe(CONFIG_NUMA, &scx_builtin_idle_per_node)) {
+		cpumask_copy(get_idle_cpumask(NUMA_FLAT_NODE), cpu_online_mask);
+		cpumask_copy(get_idle_smtmask(NUMA_FLAT_NODE), cpu_online_mask);
+		return;
+	}
+
 	/*
 	 * Consider all online cpus idle. Should converge to the actual state
 	 * quickly.
 	 */
-	cpumask_copy(idle_masks.cpu, cpu_online_mask);
-	cpumask_copy(idle_masks.smt, cpu_online_mask);
+	for_each_node(node) {
+		const struct cpumask *node_mask = cpumask_of_node(node);
+		struct cpumask *idle_cpus = get_idle_cpumask(node);
+		struct cpumask *idle_smts = get_idle_smtmask(node);
+
+		cpumask_and(idle_cpus, cpu_online_mask, node_mask);
+		cpumask_copy(idle_smts, idle_cpus);
+	}
 }
 
 void __scx_update_idle(struct rq *rq, bool idle)
 {
 	int cpu = cpu_of(rq);
+	int node = idle_cpu_to_node(cpu);
+	struct cpumask *idle_cpus = get_idle_cpumask(node);
 
 	if (SCX_HAS_OP(update_idle) && !scx_rq_bypassing(rq)) {
 		SCX_CALL_OP(SCX_KF_REST, update_idle, cpu_of(rq), idle);
@@ -466,22 +600,23 @@ void __scx_update_idle(struct rq *rq, bool idle)
 			return;
 	}
 
-	assign_cpu(cpu, idle_masks.cpu, idle);
+	assign_cpu(cpu, idle_cpus, idle);
 
 #ifdef CONFIG_SCHED_SMT
 	if (sched_smt_active()) {
 		const struct cpumask *smt = cpu_smt_mask(cpu);
+		struct cpumask *idle_smts = get_idle_smtmask(node);
 
 		if (idle) {
 			/*
-			 * idle_masks.smt handling is racy but that's fine as
-			 * it's only for optimization and self-correcting.
+			 * idle_smt handling is racy but that's fine as it's
+			 * only for optimization and self-correcting.
 			 */
-			if (!cpumask_subset(smt, idle_masks.cpu))
+			if (!cpumask_subset(smt, idle_cpus))
 				return;
-			cpumask_or(idle_masks.smt, idle_masks.smt, smt);
+			cpumask_or(idle_smts, idle_smts, smt);
 		} else {
-			cpumask_andnot(idle_masks.smt, idle_masks.smt, smt);
+			cpumask_andnot(idle_smts, idle_smts, smt);
 		}
 	}
 #endif
@@ -489,8 +624,23 @@ void __scx_update_idle(struct rq *rq, bool idle)
 
 #else	/* !CONFIG_SMP */
 
+static struct cpumask *get_idle_cpumask(int node)
+{
+	return cpu_none_mask;
+}
+
+static struct cpumask *get_idle_smtmask(int node)
+{
+	return cpu_none_mask;
+}
+
 static bool test_and_clear_cpu_idle(int cpu) { return false; }
-static s32 scx_pick_idle_cpu(const struct cpumask *cpus_allowed, u64 flags) { return -EBUSY; }
+
+static s32 scx_pick_idle_cpu(const struct cpumask *cpus_allowed, int node, u64 flags)
+{
+	return -EBUSY;
+}
+
 static void reset_idle_masks(void) {}
 
 #endif	/* CONFIG_SMP */
@@ -544,11 +694,12 @@ __bpf_kfunc const struct cpumask *scx_bpf_get_idle_cpumask(void)
 	if (!check_builtin_idle_enabled())
 		return cpu_none_mask;
 
-#ifdef CONFIG_SMP
-	return idle_masks.cpu;
-#else
-	return cpu_none_mask;
-#endif
+	if (static_branch_unlikely(&scx_builtin_idle_per_node)) {
+		scx_ops_error("SCX_OPS_BUILTIN_IDLE_PER_NODE enabled");
+		return cpu_none_mask;
+	}
+
+	return get_idle_cpumask(NUMA_FLAT_NODE);
 }
 
 /**
@@ -563,14 +714,15 @@ __bpf_kfunc const struct cpumask *scx_bpf_get_idle_smtmask(void)
 	if (!check_builtin_idle_enabled())
 		return cpu_none_mask;
 
-#ifdef CONFIG_SMP
+	if (static_branch_unlikely(&scx_builtin_idle_per_node)) {
+		scx_ops_error("SCX_OPS_BUILTIN_IDLE_PER_NODE enabled");
+		return cpu_none_mask;
+	}
+
 	if (sched_smt_active())
-		return idle_masks.smt;
+		return get_idle_smtmask(NUMA_FLAT_NODE);
 	else
-		return idle_masks.cpu;
-#else
-	return cpu_none_mask;
-#endif
+		return get_idle_cpumask(NUMA_FLAT_NODE);
 }
 
 /**
@@ -633,7 +785,7 @@ __bpf_kfunc s32 scx_bpf_pick_idle_cpu(const struct cpumask *cpus_allowed,
 	if (!check_builtin_idle_enabled())
 		return -EBUSY;
 
-	return scx_pick_idle_cpu(cpus_allowed, flags);
+	return scx_pick_idle_cpu(cpus_allowed, NUMA_NO_NODE, flags);
 }
 
 /**
@@ -656,7 +808,7 @@ __bpf_kfunc s32 scx_bpf_pick_any_cpu(const struct cpumask *cpus_allowed,
 	s32 cpu;
 
 	if (static_branch_likely(&scx_builtin_idle_enabled)) {
-		cpu = scx_pick_idle_cpu(cpus_allowed, flags);
+		cpu = scx_pick_idle_cpu(cpus_allowed, NUMA_NO_NODE, flags);
 		if (cpu >= 0)
 			return cpu;
 	}
