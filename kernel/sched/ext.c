@@ -3266,7 +3266,7 @@ static struct task_struct *first_local_task(struct rq *rq)
 					struct task_struct, scx.dsq_list.node);
 }
 
-static struct task_struct *pick_task_scx(struct rq *rq)
+static struct task_struct *pick_task_scx(struct rq *rq, struct rq_flags *rf)
 {
 	struct task_struct *prev = rq->curr;
 	struct task_struct *p;
@@ -7395,10 +7395,15 @@ static bool ext_server_has_tasks(struct sched_dl_entity *dl_se)
 /*
  * Select the next task to run from the ext scheduling class.
  */
-static struct task_struct *ext_server_pick_task(struct sched_dl_entity *dl_se)
+static struct task_struct *ext_server_pick_task(struct sched_dl_entity *dl_se, struct rq_flags *rf)
 {
-	balance_one(dl_se->rq, dl_se->rq->curr);
-	return pick_task_scx(dl_se->rq);
+	/*
+	 * A balancing operation is needed to ensure that the local dsq
+	 * is not empty during the pick.
+	 */
+	if (rf)
+		balance_scx(dl_se->rq, dl_se->rq->curr, rf);
+	return pick_task_scx(dl_se->rq, rf);
 }
 
 /*
