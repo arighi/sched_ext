@@ -397,11 +397,19 @@ void scx_idle_update_selcpu_topology(struct sched_ext_ops *ops)
 		static_branch_disable_cpuslocked(&scx_selcpu_topo_numa);
 }
 
+static inline bool task_allowed_all_cpus(const struct task_struct *p)
+{
+	return p->nr_cpus_allowed >= num_possible_cpus();
+}
+
 /*
- * Return the subset of @cpus that task @p can use or NULL if none of the
- * CPUs in the @cpus cpumask can be used.
+ * Return the subset of @cpus that task @p can use, according to
+ * @cpus_allowed, or NULL if none of the CPUs in the @cpus cpumask can be
+ * used.
  */
-static const struct cpumask *task_cpumask(const struct task_struct *p, const struct cpumask *cpus,
+static const struct cpumask *task_cpumask(const struct task_struct *p,
+					  const struct cpumask *cpus_allowed,
+					  const struct cpumask *cpus,
 					  struct cpumask *local_cpus)
 {
 	/*
@@ -410,12 +418,10 @@ static const struct cpumask *task_cpumask(const struct task_struct *p, const str
 	 * intersection of the architecture's cpumask and the task's
 	 * allowed cpumask.
 	 */
-	if (!cpus || p->nr_cpus_allowed >= num_possible_cpus() ||
-	    cpumask_subset(cpus, p->cpus_ptr))
+	if (!cpus || task_allowed_all_cpus(p) || cpumask_subset(cpus, cpus_allowed))
 		return cpus;
 
-	if (!cpumask_equal(cpus, p->cpus_ptr) &&
-	    cpumask_and(local_cpus, cpus, p->cpus_ptr))
+	if (cpumask_and(local_cpus, cpus, cpus_allowed))
 		return local_cpus;
 
 	return NULL;
@@ -454,7 +460,8 @@ static const struct cpumask *task_cpumask(const struct task_struct *p, const str
  * NOTE: tasks that can only run on 1 CPU are excluded by this logic, because
  * we never call ops.select_cpu() for them, see select_task_rq().
  */
-s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu, u64 wake_flags, u64 flags)
+s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu, u64 wake_flags,
+		       const struct cpumask *cpus_allowed, u64 flags)
 {
 	const struct cpumask *llc_cpus = NULL, *numa_cpus = NULL;
 	int node = scx_cpu_node_if_enabled(prev_cpu);
@@ -469,13 +476,19 @@ s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu, u64 wake_flags, u64 
 	 * Determine the subset of CPUs that the task can use in its
 	 * current LLC and node.
 	 */
-	if (static_branch_maybe(CONFIG_NUMA, &scx_selcpu_topo_numa))
-		numa_cpus = task_cpumask(p, numa_span(prev_cpu),
+	if (static_branch_maybe(CONFIG_NUMA, &scx_selcpu_topo_numa)) {
+		numa_cpus = task_cpumask(p, cpus_allowed, numa_span(prev_cpu),
 					 this_cpu_cpumask_var_ptr(local_numa_idle_cpumask));
+		if (cpumask_equal(numa_cpus, cpus_allowed))
+			numa_cpus = NULL;
+	}
 
-	if (static_branch_maybe(CONFIG_SCHED_MC, &scx_selcpu_topo_llc))
-		llc_cpus = task_cpumask(p, llc_span(prev_cpu),
+	if (static_branch_maybe(CONFIG_SCHED_MC, &scx_selcpu_topo_llc)) {
+		llc_cpus = task_cpumask(p, cpus_allowed, llc_span(prev_cpu),
 					this_cpu_cpumask_var_ptr(local_llc_idle_cpumask));
+		if (cpumask_equal(llc_cpus, cpus_allowed))
+			llc_cpus = NULL;
+	}
 
 	/*
 	 * If WAKE_SYNC, try to migrate the wakee to the waker's CPU.
@@ -512,7 +525,7 @@ s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu, u64 wake_flags, u64 
 		    cpu_rq(cpu)->scx.local_dsq.nr == 0 &&
 		    (!(flags & SCX_PICK_IDLE_IN_NODE) || (waker_node == node)) &&
 		    !cpumask_empty(idle_cpumask(waker_node)->cpu)) {
-			if (cpumask_test_cpu(cpu, p->cpus_ptr))
+			if (cpumask_test_cpu(cpu, cpus_allowed))
 				goto out_unlock;
 		}
 	}
@@ -557,7 +570,7 @@ s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu, u64 wake_flags, u64 
 		 * begin in prev_cpu's node and proceed to other nodes in
 		 * order of increasing distance.
 		 */
-		cpu = scx_pick_idle_cpu(p->cpus_ptr, node, flags | SCX_PICK_IDLE_CORE);
+		cpu = scx_pick_idle_cpu(cpus_allowed, node, flags | SCX_PICK_IDLE_CORE);
 		if (cpu >= 0)
 			goto out_unlock;
 
@@ -605,7 +618,7 @@ s32 scx_select_cpu_dfl(struct task_struct *p, s32 prev_cpu, u64 wake_flags, u64 
 	 * in prev_cpu's node and proceed to other nodes in order of
 	 * increasing distance.
 	 */
-	cpu = scx_pick_idle_cpu(p->cpus_ptr, node, flags);
+	cpu = scx_pick_idle_cpu(cpus_allowed, node, flags);
 	if (cpu >= 0)
 		goto out_unlock;
 
@@ -861,7 +874,7 @@ __bpf_kfunc s32 scx_bpf_select_cpu_dfl(struct task_struct *p, s32 prev_cpu,
 		goto prev_cpu;
 
 #ifdef CONFIG_SMP
-	cpu = scx_select_cpu_dfl(p, prev_cpu, wake_flags, 0);
+	cpu = scx_select_cpu_dfl(p, prev_cpu, wake_flags, p->cpus_ptr, 0);
 	if (cpu >= 0) {
 		*is_idle = true;
 		return cpu;
