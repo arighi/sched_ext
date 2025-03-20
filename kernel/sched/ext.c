@@ -2968,8 +2968,16 @@ static int balance_one(struct rq *rq, struct task_struct *prev)
 		}
 	}
 
-	/* if there already are tasks to run, nothing to do */
-	if (rq->scx.local_dsq.nr)
+	/*
+	 * If there already are enough tasks to run, nothing to do.
+	 *
+	 * Skip consuming from the global or user DSQs only if there's more
+	 * than one task in the local DSQ, to prevent over-prioritizing
+	 * tasks that are being repeatedly re-enqueued to the local DSQ,
+	 * which could potentially starve tasks currently sitting in the
+	 * global or a user DSQ.
+	 */
+	if (rq->scx.local_dsq.nr > 1)
 		goto has_tasks;
 
 	if (consume_global_dsq(rq))
